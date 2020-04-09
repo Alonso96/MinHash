@@ -6,5 +6,8 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="/home/alfonso/Downloads/commons-codec-1.13.jar"/>
+	<classpathentry kind="lib" path="/home/alfonso/Downloads/opennlp-tools-1.7.1.jar"/>
+	<classpathentry kind="lib" path="/home/alfonso/Downloads/commons-text-1.8/commons-text-1.8.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

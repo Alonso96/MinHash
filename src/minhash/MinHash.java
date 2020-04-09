@@ -1,9 +1,13 @@
 package minhash;
+import java.awt.List;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -15,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.Collections;
 import java.util.Arrays;
 import org.apache.commons.codec.digest.MurmurHash3;
@@ -22,25 +27,7 @@ import org.apache.commons.text.similarity.*;
 
 
 public class MinHash<T>{
-	 private int numHashes_ = 0;
-	    private int a[];
-	    private int b[];
-	    private int p[];
-	    private Random random_;
 
-	    public MinHash( int numHashes, int seed ) {
-	        numHashes_ =  numHashes;
-	        random_ =new Random();
-	        a = new int[numHashes];
-	        b = new int[numHashes];
-	        p = new int[numHashes];
-	        for(int i = 0; i < numHashes; ++i ) {
-	            a[i] = random_.nextInt();
-	            b[i] = random_.nextInt();
-	            p[i] = random_.nextInt();
-	        }
-	    }
-	
 	public static ArrayList<String> buildKmer(String sequence,int  k) throws IOException{
 		//String genoma = new String(Files.readAllBytes(Paths.get(path)));
 		String kmer;
@@ -57,29 +44,32 @@ public class MinHash<T>{
 		
 		return kmers;
 	}
-	public static HashMap<Long, Integer > hash (ArrayList<String> kmer) {
+	public static HashMap<Long, Integer > hash (ArrayList<String> kmer) throws UnsupportedEncodingException {
 		 //calcola complemento inverso	
 		//Long min = Long.MAX_VALUE;
 		//System.out.println(kmer.size());
 		
 		HashMap<Long,Integer> occurenceOfHash = new HashMap<Long,Integer>();
+		int lex1 =0;
+		int lex2=0;
 	//	ArrayList<Long> sketch = new  ArrayList<Long>();
 		for(String s : kmer) {
 		//	System.out.println(s);
 		String canonicalKmer;
 		String rcKmer = makeComplement(s);
-	
+		lex1 = s.compareTo(rcKmer);
+		lex2= rcKmer.compareTo(s);
 		    //determina il minore tra il kmero originale e il suo reverse complement
-		    if ((s.compareTo(rcKmer)) < 0)
+		    if (lex1< lex2)
 		    	canonicalKmer = s;
 		    else 
 		    	canonicalKmer = rcKmer;
 
 		     //calculate murmurhash using a hash seed of 42
-		    Long hash = MurmurHash3.hash64(canonicalKmer.getBytes());
+		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes("UTF-8"));
 		//    System.out.println(hash);
 		   if (hash < 0) 
-		    	hash = (long) ((long)hash + Math.pow(2, 64));
+		  	hash = (long) ((long)hash + Math.pow(2, 64));
 		    incrementValue(occurenceOfHash,hash);
 		    
 		    
@@ -127,8 +117,31 @@ public class MinHash<T>{
    public static HashMap <Long,Integer> getMinHash(HashMap<Long,Integer> hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
     {  
 	   int i =0;
+	   HashMap<Long, Integer> minHash = new HashMap<Long,Integer>();
+	/*   long min = Long.MAX_VALUE;
+	   //  Collections.sort(hashedKmers); // ordino gli sketch con hash dal più piccolo al più grande
+
+	   ArrayList<Long> valuesList = new ArrayList<Long>(hashedKmers.keySet());
+	   
+	while(i<s) {
+		   int randomIndex = new Random().nextInt(valuesList.size());
+		   Long randomValue = valuesList.get( randomIndex);
+		   min = randomValue;
+		   if(randomValue<min) { // se il valore è minore del max sketch attuale;
+			   
+			   if(minHash.containsKey(randomValue)) i--;
+			   else
+				   	minHash.put(randomValue, 1);
+			   //min = randomValue;
+			   i++;
+		   } 
+			   
+	   }
+	   */
+	   
+
 	   System.out.println("sketch size:" + hashedKmers.size());
-	  HashMap<Long,Integer> minHash = new HashMap<Long,Integer>();
+	
 	  /* int scaled =1000;
 	   Long max = (long) 0;
 	   Long MAX_HASH = (long) Math.pow(2, 64);
@@ -137,18 +150,22 @@ public class MinHash<T>{
       ArrayList<Long> minHashes = new ArrayList<Long>();
         Long min = Long.MAX_VALUE;
       */
-   //  Collections.sort(hashedKmers); // ordino gli sketch con hash dal più piccolo al più grande
-	  TreeMap<Long, Integer> sorted = new TreeMap<>(); 
+  //  Collections.sort(hashedKmers); // ordino gli sketch con hash dal più piccolo al più grande
+	 TreeMap<Long, Integer> sorted = new TreeMap<>(); 
 	  
       // Copy all data from hashMap into TreeMap 
       sorted.putAll(hashedKmers); 
-
+    
       // Display the TreeMap which is naturally sorted 
       for (Map.Entry<Long, Integer> entry : sorted.entrySet()) {
     	  if(i==s) break; 
     	  else {
+    		  if(entry.getValue()<=0) continue;
+    		  else {
     		  minHash.put(entry.getKey(),entry.getValue());
+    		 // System.out.println(entry.getKey()+ " " +entry.getValue());
     		  i++;
+    		  }
     	  }
       }  
 
@@ -161,21 +178,41 @@ public class MinHash<T>{
 
     static private double jaccardSimilarity(HashMap<Long,Integer>  set1, HashMap<Long,Integer> set2, int s ) {
     	int identicalMinHashes =0;
+    	int uniqueHash=0;;
+    	int i =0;
+    	Set<Long> s1= new HashSet<Long>(set1.keySet());
+    	Set<Long>s2 = new HashSet<Long>(set2.keySet());
+    
+    	//union.addAll(intersection);
     	int a = set1.size();
     	int b = set2.size();
+ 
     	System.out.println("Cardinalità di set1: " +set1.size());
+ 
     	System.out.println("Cardinalità di set2: "+  set2.size());
+
     	if (a == 0 || b== 0) return 0;
+    	
     	else {
     	
-    	for(Long k : set1.keySet()) {
+    	for(Long k : set1.keySet() ) {
+    		
+   
     		if (set2.containsKey(k)) identicalMinHashes++;
+    		
     	}
-    	}
+    	
+    
+    	
+    //	System.out.println(set1.entrySet());
+    //	System.out.println(set2.entrySet());
+       
+        
         System.out.println(identicalMinHashes +"/1000");
-    	 return (1.0 * identicalMinHashes) / s;
+    	 return ( double) identicalMinHashes / s;
          
      }
+    }
 
     	/*if (a.isEmpty() && b.isEmpty()) {
 			return 1.0f;
@@ -219,17 +256,22 @@ public class MinHash<T>{
     	ArrayList<String> allKmers = new ArrayList<String>();
     	ArrayList<String> kmers = new ArrayList<String>();
     	File file = new File(path); 
+    	
+   
+    		
+    	
     	BufferedReader br = new BufferedReader(new FileReader(file)); 
     	String st; 
-    	//br.readLine(); //salto la prima riga
+    
     	  while ((st = br.readLine()) != null) { //Successivamente inserire controllo per saltare le righe che non inziano per alfabeto ACGT
-    		  kmers = buildKmer(st, kSize);
+    		  if(st.contains(">")) continue; // se è la prima riga salta
+    		  	kmers = buildKmer(st, kSize);
     		 // System.out.println(kmers);
     		  for(String s:kmers)
     			  allKmers.add(s);
     	  }
     		  
-    	return allKmers;
+    return allKmers;
     			
     }
 
@@ -241,37 +283,15 @@ public class MinHash<T>{
 	
 	
 		
-		ArrayList<String> seq1 = readKmerFromFile("/home/alfonso/Downloads/Mash-master/test/genome1.fna",21); //path, k 
-		ArrayList<String> seq2 = readKmerFromFile("/home/alfonso/Downloads/Mash-master/test/genome3.fna",21); //path, k
-	/*	Set<String> s1 = new HashSet<String>(seq1);
-		System.out.println("l " + seq1.size());
-		System.out.println("cardinalita " + s1.size());
-		*/
+		ArrayList<String> seq1 = readKmerFromFile("/home/alfonso/Downloads/genome1.fna",21); //path, k 
+		ArrayList<String> seq2 = readKmerFromFile("/home/alfonso/Downloads/genome2.fna",21); //path, k
+
 		hashedKmers1 = hash(seq1);
 		hashedKmers2= hash(seq2);
-			//System.out.println(hash(s));
-	/*	}
-		for (String s :seq2 ){
-			sketch2.add(hash(s));
-		}
-		*/
-		/*for (Long s: sketch1)
-			set1.add(s);
-		for (Long s: sketch2)
-			set2.add(s);
-		*/
+
 		set1 = getMinHash(hashedKmers1, 1000); //costruisce sketch di minHash grande 1000
 		set2 = getMinHash(hashedKmers2, 1000);
-		//JaccardSimilarity js = new JaccardSimilarity();
-	/*	System.out.println(MurmurHash3.hash64("GCTTTTCATTCTGACTGCAAC".getBytes()));
-		System.out.println(MurmurHash3.hash64("GCTTTTCATTCTGACTGCAAC".getBytes()));
-		System.out.println(MurmurHash3.hash64("GCTTTTCATTCTGACTGCAAC".getBytes()));
-		System.out.println(MurmurHash3.hash64("CTTTTCATTCTGACTGCAACG".getBytes()));
-		System.out.println(MurmurHash3.hash64("TTTTCATTCTGACTGCAACGG".getBytes()));
-		*/
-	//GCTTTTCATTCTGACTGCAAC
-	//CTTTTCATTCTGACTGCAACG
-	//TTTTCATTCTGACTGCAACGG
+
 		System.out.println("Indice di Jaccard: "+jaccardSimilarity(set1, set2, 1000));
 	
 	System.out.println("Distanza di Jaccard: "+jaccardDistance(set1, set2,1000));
