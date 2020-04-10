@@ -260,29 +260,35 @@ public class MinHash<T>{
     
     static private double jaccardDistance(HashMap<Integer,Integer> set1, HashMap<Integer,Integer> set2, int s) {
     	return 1.0 - jaccardSimilarity(set1,set2, s);
+    	//return  (double )-1/21*(Math.log(2*jaccardSimilarity(set1, set2, s)/1+jaccardSimilarity(set1, set2, s)));
 
         
     }
     public static ArrayList<String> readKmerFromFile(String path,int kSize) throws IOException{
     	ArrayList<String> allKmers = new ArrayList<String>();
     	ArrayList<String> kmers = new ArrayList<String>();
+    	StringBuilder genome = new StringBuilder();
     	File file = new File(path); 
-    	
+    	int nLine=0;
    
     		
     	
     	BufferedReader br = new BufferedReader(new FileReader(file)); 
-    	String st; 
+    	String st;
+    	
     
     	  while ((st = br.readLine()) != null) { //Successivamente inserire controllo per saltare le righe che non inziano per alfabeto ACGT
     		  if(st.contains(">")) continue; // se è la prima riga salta
-    		  	kmers = buildKmer(st, kSize);
-    		 // System.out.println(kmers);
-    		  for(String s:kmers)
-    			  allKmers.add(s);
+    		  genome.append(st);
     	  }
-    		  
-    return allKmers;
+    	  kmers= buildKmer(genome.toString(), kSize);
+    	    System.out.println("kmers size: "+kmers.size());
+    	    System.out.println("Genome lenght: "+ genome.toString().length());
+    	  allKmers.addAll(buildKmer(genome.toString(), kSize));
+    	  
+    	  System.out.println("AllKmer size: "+allKmers.size());
+    	  System.out.println(nLine);
+    	  return allKmers;
     			
     }
 
@@ -292,8 +298,8 @@ public class MinHash<T>{
 		HashMap<Integer,Integer> hashedKmers1 = new HashMap<Integer,Integer>();
 		HashMap<Integer,Integer> hashedKmers2 = new HashMap<Integer,Integer>();
 		int identicalHash =0;
-		ArrayList<String> seq1 = readKmerFromFile("/Users/alfonso/Downloads/Mash-master/test/genome1.fna",21); //path, k 
-		ArrayList<String> seq2 = readKmerFromFile("/Users/alfonso/Downloads/Mash-master/test/genome3.fna",21); //path, k
+		ArrayList<String> seq1 = readKmerFromFile("/home/alfonso/Downloads/genome1.fna",21); //path, k 
+		ArrayList<String> seq2 = readKmerFromFile("/home/alfonso/Downloads/genome2.fna",21); //path, k
 		hashedKmers1 = hash(seq1);
 		hashedKmers2= hash(seq2);
 		set1 = getMinHash(hashedKmers1, 1000); //costruisce sketch di minHash grande 1000
