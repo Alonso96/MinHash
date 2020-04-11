@@ -3,8 +3,10 @@ import java.awt.List;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -70,10 +72,10 @@ public class MinHash<T>{
 
 		     //calculate murmurhash using a hash seed of 42
 		 
-		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes());
+		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes("UTF-8")) ;
 		//    System.out.println(hash);
-		 //  if (hash < 0) 
-		//	hash+= Math.pow(2, 64);
+		    if (hash < 0) 
+		    	hash+= Math.pow(2, 64);
 		    incrementValue(occurenceOfHash,hash);
 		    
 		    
@@ -120,37 +122,39 @@ public class MinHash<T>{
     }
    public static HashMap<Long, Integer> getMinHash(TreeMap<Long, Integer> hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
     {  
-	   int i =0;
+	  int i =0;
+	
 	   HashMap<Long, Integer> minHash = new HashMap<Long,Integer>();
-	   for (Map.Entry<Long, Integer> entry : hashedKmers.entrySet()) {
+
+	   for (long entry : hashedKmers.keySet()) {
     	  if(i==s) break; 
     	  else {
-    		  if(entry.getValue()<0) continue; //accept all k-mers
+    		  if(hashedKmers.get(entry)<0) continue; //accept all k-mers
     		  else {
-    		  minHash.put(entry.getKey(),entry.getValue());
+    		//	  System.out.println(entry);
+    			  
+    			  minHash.put(entry,hashedKmers.get(entry));
     		
-    		  i++;
+    			  i++;
     		  }
     	  }
       }  
+	   
+
+           
+       
 	   	System.out.println("Minhash size" +minHash.size());
         return  minHash;
       
     }
     
 
-    static private double jaccardSimilarity(HashMap<Long, Integer>  set1, HashMap<Long, Integer> set2, int s ) {
-    	int identicalMinHashes =0;
-    	
-    	
-    	int uniqueHash=0;;
-    	int i =0;
-    	Set<Long> s1= new HashSet<Long>(set1.keySet());
-    	Set<Long> s2 = new HashSet<Long>(set2.keySet());
-    	Set<Long> union = new HashSet<Long>(s1);
-    	Set<Long> intersection = new HashSet<Long>(s1);
-    	union.addAll(s2);
-    	intersection.retainAll(s2);
+    static private double jaccardSimilarity(HashMap<Long, Integer>  s1, HashMap<Long, Integer> s2, int s ) {
+
+    	Set<Long> union = new HashSet<Long>(s1.keySet());
+    	Set<Long> intersection = new HashSet<Long>(s1.keySet());
+    	union.addAll(s2.keySet());
+    	intersection.retainAll(s2.keySet());
     /*
     	//union.addAll(intersection);
     	int a = set1.size();
@@ -234,24 +238,36 @@ public class MinHash<T>{
     		  genome.append(st);
     	  }
     	  kmers= buildKmer(genome.toString(), kSize);
-    	    System.out.println("kmers size: "+kmers.size());
-    	    System.out.println("Genome lenght: "+ genome.toString().length());
+    	    //System.out.println("kmers size: "+kmers.size());
+    	    //System.out.println("Genome lenght: "+ genome.toString().length());
     	  allKmers.addAll(buildKmer(genome.toString(), kSize));
     	  
-    	  System.out.println("AllKmer size: "+allKmers.size());
-    	  System.out.println(nLine);
+    	  //System.out.println("AllKmer size: "+allKmers.size());
+    	  //System.out.println(nLine);
     	  return allKmers;
     			
     }
-    public static HashMap<String,Integer> getHistogram(ArrayList<String> kmers){
+    public static void getHistogram(ArrayList<String> kmers,String path) throws IOException{
     	HashMap<String,Integer> histogram = new HashMap<String,Integer>();
+    	File fout = new File(path);
+		FileOutputStream fos = new FileOutputStream(fout);
+	 
+		OutputStreamWriter osw = new OutputStreamWriter(fos);
     	for(String kmer : kmers) {
     		incrementValue(histogram, kmer);
     	}
+    	System.out.println("Writing to file...");
+    	for(Map.Entry<String,Integer> entry : histogram.entrySet()) {
     	
-    	return histogram;
-    	
-    }
+    				osw.write(entry.getKey() +" : " + entry.getValue() + "\n");
+    				
+    	}
+    				osw.close();
+    				System.out.println("Write complete");
+    		
+    	}
+    
+    
 	public static void main(String[] args) throws IOException{
 		if (args.length != 2) {
 			System.err.println("Required at least 2 argument");
@@ -274,9 +290,8 @@ public class MinHash<T>{
 		System.out.println("Indice di Jaccard: "+jaccardSimilarity(set1, set2, 1000));
 		System.out.println("Distanza di Jaccard: "+jaccardDistance(set1, set2,1000));
 		
-	//	HashMap<String,Integer> histogram = getHistogram(seq1);
-	//	for(Map.Entry<String, Integer> entry1 : histogram.entrySet()) 
-	//		System.out.println(entry1.getKey() + " : " + entry1.getValue() );
-		
+	//	getHistogram(seq1,"/home/alfonso/Desktop/genome1.txt");
+	//	getHistogram(seq2,"/home/alfonso/Desktop/genome2.txt");
+	
 	}
 }
