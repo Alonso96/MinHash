@@ -150,7 +150,7 @@ public class MinHash<T>{
     
 
     static private double jaccardSimilarity(HashMap<Long, Integer>  s1, HashMap<Long, Integer> s2, int s ) {
-
+    	int n =0;
     	Set<Long> union = new HashSet<Long>(s1.keySet());
     	Set<Long> intersection = new HashSet<Long>(s1.keySet());
     	union.addAll(s2.keySet());
@@ -182,7 +182,9 @@ public class MinHash<T>{
        */
         
         System.out.println(intersection.size()+"/1000");
-    	 return ( double) intersection.size()/union.size();
+        n= intersection.size() / union.size();
+    	// 2.f*  intersection.size()/union.size();
+        return  (float) (Math.ceil(n * Math.pow(10, 2)) / Math.pow(10, 2));
          
      
     }
@@ -221,7 +223,9 @@ public class MinHash<T>{
 	
     
     static private double jaccardDistance(HashMap<Long,Integer> set1, HashMap<Long,Integer> set2, int s) {
+    	//double jaccard = jaccardSimilarity(set1, set2, s);
     	return 1.0 - jaccardSimilarity(set1,set2, s);
+    //	return -Math.log(2 * jaccard / (1. + jaccard)) / 21;
     	
         
     }
