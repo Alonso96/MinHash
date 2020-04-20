@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.Collections;
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.apache.commons.codec.digest.MurmurHash3;
 
 
@@ -62,20 +61,21 @@ public class MinHash<T>{
 		//	System.out.println(s);
 		String canonicalKmer;
 		String rcKmer = makeComplement(s);
-		lex1 = s.compareTo(rcKmer);
-		lex2= rcKmer.compareTo(s);
+	//	lex1 = s.compareTo(rcKmer);
+	//	lex2= rcKmer.compareTo(s);
 		    //determina il minore tra il kmero originale e il suo reverse complement
-		    if (lex1< lex2)
+		   if (s.compareTo(rcKmer) <=0)
 		    	canonicalKmer = s;
 		    else 
 		    	canonicalKmer = rcKmer;
+
 
 		     //calculate murmurhash using a hash seed of 42
 		 
 		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes("UTF-8")) ;
 		//    System.out.println(hash);
-		    if (hash < 0) 
-		    	hash+= Math.pow(2, 64);
+		 //   if (hash < 0) 
+		    //	hash+= Math.pow(2, 64);
 		    incrementValue(occurenceOfHash,hash);
 		    
 		    
@@ -132,10 +132,12 @@ public class MinHash<T>{
     		  if(hashedKmers.get(entry)<0) continue; //accept all k-mers
     		  else {
     		//	  System.out.println(entry);
-    			  
+    			  if(minHash.containsKey(entry)) continue;
+    			  else {
     			  minHash.put(entry,hashedKmers.get(entry));
     		
     			  i++;
+    			  }
     		  }
     	  }
       }  
@@ -151,6 +153,11 @@ public class MinHash<T>{
 
     static private double jaccardSimilarity(HashMap<Long, Integer>  s1, HashMap<Long, Integer> s2, int s ) {
     	int n =0;
+    	int maxS =0;
+    	if (s1.size()>=s2.size())
+    			maxS=s1.size();
+    	else maxS=s2.size();
+    	
     	Set<Long> union = new HashSet<Long>(s1.keySet());
     	Set<Long> intersection = new HashSet<Long>(s1.keySet());
     	union.addAll(s2.keySet());
@@ -163,7 +170,6 @@ public class MinHash<T>{
     	System.out.println("Cardinalità di set1: " +set1.size());
  
     	System.out.println("Cardinalità di set2: "+  set2.size());
-
     	if (a == 0 || b== 0) return 0;
     	
     	else {
@@ -181,10 +187,10 @@ public class MinHash<T>{
     //	System.out.println(set2.entrySet());
        */
         
-        System.out.println(intersection.size()+"/1000");
+        System.out.println(intersection.size()+"/"+ maxS);
         n= intersection.size() / union.size();
     	// 2.f*  intersection.size()/union.size();
-        return  (float) (Math.ceil(n * Math.pow(10, 2)) / Math.pow(10, 2));
+        return  (double) intersection.size() / union.size();
          
      
     }
@@ -192,7 +198,6 @@ public class MinHash<T>{
     	/*if (a.isEmpty() && b.isEmpty()) {
 			return 1.0f;
 		}
-
 		if (a.isEmpty() || b.isEmpty()) {
 			return 0.0f;
 		}
@@ -208,7 +213,6 @@ public class MinHash<T>{
     /*	if (set1.isEmpty() && set2.isEmpty()) {
 			return 1.0f;
 		}
-
 		if (set1.isEmpty() || set2.isEmpty()) {
 			return 0.0f;
 		}
@@ -223,9 +227,9 @@ public class MinHash<T>{
 	
     
     static private double jaccardDistance(HashMap<Long,Integer> set1, HashMap<Long,Integer> set2, int s) {
-    	//double jaccard = jaccardSimilarity(set1, set2, s);
-    	return 1.0 - jaccardSimilarity(set1,set2, s);
-    //	return -Math.log(2 * jaccard / (1. + jaccard)) / 21;
+    	double jaccard = jaccardSimilarity(set1, set2, s);
+  //  	return 1.0 - jaccardSimilarity(set1,set2, s);
+    	return -Math.log(2 * jaccard / (1. + jaccard)) / 21;
     	
         
     }
@@ -289,8 +293,6 @@ public class MinHash<T>{
 		hashedKmers2= hash(seq2);
 		set1 = getMinHash(hashedKmers1, 1000); //costruisce sketch di minHash grande 1000
 		set2 = getMinHash(hashedKmers2, 1000);
-		
-
 		System.out.println("Indice di Jaccard: "+jaccardSimilarity(set1, set2, 1000));
 		System.out.println("Distanza di Jaccard: "+jaccardDistance(set1, set2,1000));
 		
