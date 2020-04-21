@@ -129,7 +129,7 @@ public class MinHash<T>{
 	   for (long entry : hashedKmers.keySet()) {
     	  if(i==s) break; 
     	  else {
-    		  if(hashedKmers.get(entry)<0) continue; //accept all k-mers
+    		  if(hashedKmers.get(entry)<=0) continue; //accept all k-mers
     		  else {
     		//	  System.out.println(entry);
     			  if(minHash.containsKey(entry)) continue;
@@ -225,25 +225,43 @@ public class MinHash<T>{
 		// the size of both sets minus the duplicate elements.
 		//return intersection / (float) (a.size() + b.size() - intersection);
 	
+    static double pValue(int sharedKmers,int sketchSize,int maxHash,int hashBit) {
+    	double r=0;
+    	return r;
+    }
     
     static private double jaccardDistance(HashMap<Long,Integer> set1, HashMap<Long,Integer> set2, int s) {
     	double jaccard = jaccardSimilarity(set1, set2, s);
   //  	return 1.0 - jaccardSimilarity(set1,set2, s);
     	return -Math.log(2 * jaccard / (1. + jaccard)) / 21;
     	
+    	
         
     }
     public static ArrayList<String> readKmerFromFile(String path,int kSize) throws IOException{
+    	char [] alphabet = "ACGT".toCharArray();
+    	System.out.println(alphabet);
     	ArrayList<String> allKmers = new ArrayList<String>();
     	ArrayList<String> kmers = new ArrayList<String>();
     	StringBuilder genome = new StringBuilder();
     	File file = new File(path); 
     	int nLine=0;
+    	int c = 0;             
+         
     	BufferedReader br = new BufferedReader(new FileReader(file)); 
     	String st;
-    	while ((st = br.readLine()) != null) { //Successivamente inserire controllo per saltare le righe che non inziano per alfabeto ACGT
-    		  if(st.contains(">")) continue; // se è la prima riga salta
-    		  genome.append(st);
+    	while ((c = br.read()) != -1) { //Successivamente inserire controllo per saltare le righe che non inziano per alfabeto ACGT
+    		  if(c == '>') { // se è la riga descrittiva del genoma salta
+    			  br.readLine();
+    			  continue;
+    			  } 
+    		  else if(c== alphabet[0] || c== alphabet[1] || c== alphabet[2] || c== alphabet[3]   ){ // se il carattere che leggo è dell'alfabeto del genoma
+    			  char character = (char) c;
+    			  genome.append(character);
+    		  
+    		  }
+    		  else
+    			 continue;
     	  }
     	  kmers= buildKmer(genome.toString(), kSize);
     	    //System.out.println("kmers size: "+kmers.size());
@@ -278,15 +296,13 @@ public class MinHash<T>{
     
 	public static void main(String[] args) throws IOException{
 		if (args.length != 2) {
-			System.err.println("Required at least 2 argument");
+			System.err.println("Two argument required");
 			return;
 		}
 		HashMap<Long,Integer> set1 = new  HashMap <Long,Integer>();
 		HashMap<Long,Integer> set2 = new  HashMap <Long,Integer>();
 		TreeMap<Long,Integer> hashedKmers1 = new TreeMap<Long,Integer>();
 		TreeMap<Long,Integer> hashedKmers2 = new TreeMap<Long,Integer>();
-		
-		int identicalHash =0;
 		ArrayList<String> seq1 = readKmerFromFile(args[0],21); //path, k 
 		ArrayList<String> seq2 = readKmerFromFile(args[1],21); //path, k
 		hashedKmers1 = hash(seq1);
