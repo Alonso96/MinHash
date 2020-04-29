@@ -11,6 +11,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,32 +33,34 @@ import org.apache.commons.codec.digest.MurmurHash3;
 
 public class MinHash<T>{
 
-	public static ArrayList<String> buildKmer(String sequence,int  k) throws IOException{
+	public static HashMap<String,Integer> buildKmer(String sequence,int  k) throws IOException{
 		//String genoma = new String(Files.readAllBytes(Paths.get(path)));
 		String kmer;
+		
 	
-		ArrayList<String> kmers = new ArrayList<String>();
+		HashMap<String,Integer> kmers = new HashMap<String,Integer>();
 		int n_kmers = sequence.length() - k + 1;
 	//	System.out.println("n k-meri" + n_kmers);
 	//	System.out.println("l sequenza: "+ sequence.length());
 		for (int i=0;i<n_kmers;i++) {
 			kmer = sequence.substring(i,i+k);
 			
-			kmers.add(kmer);
+			incrementValue(kmers,kmer);
 		}
 		
 		return kmers;
 	}
-	public static TreeMap<Long, Integer> hash (ArrayList<String> kmer) throws UnsupportedEncodingException {
+	public static Long [] hash (HashMap<String, Integer> seq) throws UnsupportedEncodingException {
 		 //calcola complemento inverso	
 		//Long min = Long.MAX_VALUE;
 		//System.out.println(kmer.size());
 		
-		TreeMap<Long,Integer> occurenceOfHash = new TreeMap<Long,Integer>();
+		Long [] kmerHashed = new Long[seq.size()];
+		int i=0;
 		int lex1 =0;
 		int lex2=0;
 	//	ArrayList<Long> sketch = new  ArrayList<Long>();
-		for(String s : kmer) {
+		for(String s : seq.keySet()) {
 		//	System.out.println(s);
 		String canonicalKmer;
 		String rcKmer = makeComplement(s);
@@ -70,14 +73,15 @@ public class MinHash<T>{
 		    	canonicalKmer = rcKmer;
 
 
-		     //calculate murmurhash using a hash seed of 42
+		     
 		 
-		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes("UTF-8")) ;
+		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes(StandardCharsets.UTF_8)) ;
 		//    System.out.println(hash);
-		 //   if (hash < 0) 
-		    //	hash+= Math.pow(2, 64);
-		    incrementValue(occurenceOfHash,hash);
+		   // if (hash < 0) 
+		    	
 		    
+		   kmerHashed[i] = hash;
+		   i++;
 		    
 		   /* if(hash<=min) {
 		    	
@@ -86,10 +90,10 @@ public class MinHash<T>{
            // System.out.println("aggiunto min "+ min);
 		    }
 		   */
-		}
+		} //fine for 
 		//	System.out.println(minHashes.size());
 		//System.out.println(occurenceOfHash);
-			return occurenceOfHash;
+			return kmerHashed;
 
 	}
 	public static<K> void incrementValue(Map<K,Integer> map, K key)
@@ -120,27 +124,23 @@ public class MinHash<T>{
          }
          return builder.toString();
     }
-   public static HashMap<Long, Integer> getMinHash(TreeMap<Long, Integer> hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
+   public static ArrayList<Long> getMinHash(Long[] hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
     {  
 	  int i =0;
-	
-	   HashMap<Long, Integer> minHash = new HashMap<Long,Integer>();
+	  RadixSort rs = new RadixSort();
+	  rs.sort(hashedKmers);
+	   ArrayList<Long> minHash = new ArrayList<Long>();
 
-	   for (long entry : hashedKmers.keySet()) {
+	   for (long entry :hashedKmers) {
     	  if(i==s) break; 
     	  else {
-    		  if(hashedKmers.get(entry)<=0) continue; //accept all k-mers
-    		  else {
-    		//	  System.out.println(entry);
-    			  if(minHash.containsKey(entry)) continue;
-    			  else {
-    			  minHash.put(entry,hashedKmers.get(entry));
+    		  minHash.add(entry);
+    		  i++;
+    		   //accept all k-mers
     		
-    			  i++;
-    			  }
-    		  }
+    		}
     	  }
-      }  
+        
 	   
 
            
@@ -151,17 +151,17 @@ public class MinHash<T>{
     }
     
 
-    static private double jaccardSimilarity(HashMap<Long, Integer>  s1, HashMap<Long, Integer> s2, int s ) {
+    static private double jaccardSimilarity(ArrayList<Long>  set1, ArrayList<Long> set2, int s ) {
     	int n =0;
     	int maxS =0;
-    	if (s1.size()>=s2.size())
-    			maxS=s1.size();
-    	else maxS=s2.size();
+    	if (set1.size()>=set2.size())
+    			maxS=set1.size();
+    	else maxS=set2.size();
     	
-    	Set<Long> union = new HashSet<Long>(s1.keySet());
-    	Set<Long> intersection = new HashSet<Long>(s1.keySet());
-    	union.addAll(s2.keySet());
-    	intersection.retainAll(s2.keySet());
+    	Set<Long> union = new HashSet<Long>(set1);
+    	Set<Long> intersection = new HashSet<Long>(set1);
+    	union.addAll(set2);
+    	intersection.retainAll(set2);
     /*
     	//union.addAll(intersection);
     	int a = set1.size();
@@ -230,18 +230,21 @@ public class MinHash<T>{
     	return r;
     }
     
-    static private double jaccardDistance(HashMap<Long,Integer> set1, HashMap<Long,Integer> set2, int s) {
+    static private double jaccardDistance(ArrayList<Long>set1, ArrayList<Long> set2, int s) {
     	double jaccard = jaccardSimilarity(set1, set2, s);
   //  	return 1.0 - jaccardSimilarity(set1,set2, s);
+    	if(jaccard==1) return 0;
+    	else if(jaccard==0) return 1;
+    	else
     	return -Math.log(2 * jaccard / (1. + jaccard)) / 21;
     	
     	
         
     }
-    public static ArrayList<String> readKmerFromFile(String path,int kSize) throws IOException{
+    public static HashMap<String, Integer> readKmerFromFile(String path,int kSize) throws IOException{
     	char [] alphabet = "ACGT".toCharArray();
-    	System.out.println(alphabet);
-    	ArrayList<String> allKmers = new ArrayList<String>();
+    	//System.out.println(alphabet);
+    	HashMap<String,Integer> allKmers = new HashMap<String,Integer>();
     	ArrayList<String> kmers = new ArrayList<String>();
     	StringBuilder genome = new StringBuilder();
     	File file = new File(path); 
@@ -263,10 +266,10 @@ public class MinHash<T>{
     		  else
     			 continue;
     	  }
-    	  kmers= buildKmer(genome.toString(), kSize);
+    	 // kmers= buildKmer(genome.toString(), kSize);
     	    //System.out.println("kmers size: "+kmers.size());
     	    //System.out.println("Genome lenght: "+ genome.toString().length());
-    	  allKmers.addAll(buildKmer(genome.toString(), kSize));
+    	  allKmers = (buildKmer(genome.toString(), kSize));
     	  
     	  //System.out.println("AllKmer size: "+allKmers.size());
     	  //System.out.println(nLine);
@@ -299,12 +302,12 @@ public class MinHash<T>{
 			System.err.println("Two argument required");
 			return;
 		}
-		HashMap<Long,Integer> set1 = new  HashMap <Long,Integer>();
-		HashMap<Long,Integer> set2 = new  HashMap <Long,Integer>();
-		TreeMap<Long,Integer> hashedKmers1 = new TreeMap<Long,Integer>();
-		TreeMap<Long,Integer> hashedKmers2 = new TreeMap<Long,Integer>();
-		ArrayList<String> seq1 = readKmerFromFile(args[0],21); //path, k 
-		ArrayList<String> seq2 = readKmerFromFile(args[1],21); //path, k
+		ArrayList<Long> set1 = new ArrayList<Long>();
+		ArrayList<Long> set2 = new ArrayList<Long>();
+		Long[] hashedKmers1 ;
+		Long[] hashedKmers2 ;
+		HashMap<String,Integer> seq1 = readKmerFromFile(args[0],21); //path, k 
+		HashMap<String,Integer> seq2 = readKmerFromFile(args[1],21); //path, k
 		hashedKmers1 = hash(seq1);
 		hashedKmers2= hash(seq2);
 		set1 = getMinHash(hashedKmers1, 1000); //costruisce sketch di minHash grande 1000
@@ -314,6 +317,7 @@ public class MinHash<T>{
 		
 	//	getHistogram(seq1,"/home/alfonso/Desktop/genome1.txt");
 	//	getHistogram(seq2,"/home/alfonso/Desktop/genome2.txt");
-	
+		
 	}
+
 }
