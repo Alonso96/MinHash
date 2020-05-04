@@ -1,32 +1,23 @@
 package minhash;
-import java.awt.List;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.Collections;
-import java.util.Arrays;
-import java.util.Collection;
+
 import org.apache.commons.codec.digest.MurmurHash3;
 
 
@@ -50,7 +41,35 @@ public class MinHash<T>{
 		
 		return kmers;
 	}
-	public static Long [] hash (HashMap<String, Integer> seq) throws UnsupportedEncodingException {
+	 public static String getMd5(String input) 
+	    { 
+	        try { 
+	  
+	            // Static getInstance method is called with hashing MD5 
+	            MessageDigest md = MessageDigest.getInstance("MD5"); 
+	  
+	            // digest() method is called to calculate message digest 
+	            //  of an input digest() return array of byte 
+	            byte[] messageDigest = md.digest(input.getBytes()); 
+	  
+	            // Convert byte array into signum representation 
+	            BigInteger no = new BigInteger(1, messageDigest); 
+	  
+	            // Convert message digest into hex value 
+	            String hashtext = no.toString(16); 
+	            while (hashtext.length() < 32) { 
+	                hashtext = "0" + hashtext; 
+	            } 
+	            return hashtext; 
+	        }  
+	  
+	        // For specifying wrong message digest algorithms 
+	        catch (NoSuchAlgorithmException e) { 
+	            throw new RuntimeException(e); 
+	        } 
+	    } 
+	 
+	/*public static Long [] hash (HashMap<String, Integer> seq) throws UnsupportedEncodingException {
 		 //calcola complemento inverso	
 		//Long min = Long.MAX_VALUE;
 		//System.out.println(kmer.size());
@@ -74,20 +93,69 @@ public class MinHash<T>{
 
 
 		     
-		 
-		    long  hash = MurmurHash3.hash64(canonicalKmer.getBytes(StandardCharsets.UTF_8)) ;
+		   	if(seq.get(s)>1) {
+		   		long  hash = MurmurHash3.hash64(canonicalKmer.getBytes(StandardCharsets.UTF_8)) ;
 		//    System.out.println(hash);
 		   // if (hash < 0) 
 		    	
 		    
 		   kmerHashed[i] = hash;
 		   i++;
-		    
+		   	}
+		   	else continue;
 		   /* if(hash<=min) {
 		    	
 		    	min = hash;
 		    	minHashes.add(min);
            // System.out.println("aggiunto min "+ min);
+		    }
+		   
+		} //fine for 
+		//	System.out.println(minHashes.size());
+		//System.out.println(occurenceOfHash);
+			return kmerHashed;
+
+	}
+	*/
+	public static ArrayList<String> hash (HashMap<String, Integer> seq) throws UnsupportedEncodingException {
+		 //calcola complemento inverso	
+		//Long min = Long.MAX_VALUE;
+		//System.out.println(kmer.size());
+		
+		ArrayList<String> kmerHashed = new ArrayList<String>();
+		int i=0;
+		int lex1 =0;
+		int lex2=0;
+	//	ArrayList<Long> sketch = new  ArrayList<Long>();
+		for(String s : seq.keySet()) {
+		//	System.out.println(s);
+		String canonicalKmer;
+		String rcKmer = makeComplement(s);
+	//	lex1 = s.compareTo(rcKmer);
+	//	lex2= rcKmer.compareTo(s);
+		    //determina il minore tra il kmero originale e il suo reverse complement
+		  if (s.compareTo(rcKmer) <=0)
+		    	canonicalKmer = s;
+		    else 
+		    	canonicalKmer = rcKmer;
+
+
+		     
+		   	if(seq.get(s)>=1) {
+		   		String hash =  getMd5(canonicalKmer);//MurmurHash3.hash64(canonicalKmer.getBytes(StandardCharsets.UTF_8)) ;
+		//    System.out.println(hash);
+		   // if (hash < 0) 
+		    	
+		    
+		   kmerHashed.add(hash);
+		  // i++;
+		   	}
+		   	else continue;
+		   /* if(hash<=min) {
+		    	
+		    	min = hash;
+		    	minHashes.add(min);
+          // System.out.println("aggiunto min "+ min);
 		    }
 		   */
 		} //fine for 
@@ -124,14 +192,15 @@ public class MinHash<T>{
          }
          return builder.toString();
     }
-   public static ArrayList<Long> getMinHash(Long[] hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
+   public static ArrayList<String> getMinHash(ArrayList<String>hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
     {  
 	  int i =0;
-	  RadixSort rs = new RadixSort();
-	  rs.sort(hashedKmers);
-	   ArrayList<Long> minHash = new ArrayList<Long>();
+	  //RadixSort rs = new RadixSort();
+	  //rs.sort(hashedKmers);
+	  Collections.sort(hashedKmers);
+	   ArrayList<String> minHash = new ArrayList<String>();
 
-	   for (long entry :hashedKmers) {
+	   for (String entry :hashedKmers) {
     	  if(i==s) break; 
     	  else {
     		  minHash.add(entry);
@@ -151,15 +220,15 @@ public class MinHash<T>{
     }
     
 
-    static private double jaccardSimilarity(ArrayList<Long>  set1, ArrayList<Long> set2, int s ) {
+    static private double jaccardSimilarity(ArrayList<String>  set1, ArrayList<String> set2, int s ) {
     	int n =0;
     	int maxS =0;
     	if (set1.size()>=set2.size())
     			maxS=set1.size();
     	else maxS=set2.size();
     	
-    	Set<Long> union = new HashSet<Long>(set1);
-    	Set<Long> intersection = new HashSet<Long>(set1);
+    	Set<String> union = new HashSet<String>(set1);
+    	Set<String> intersection = new HashSet<String>(set1);
     	union.addAll(set2);
     	intersection.retainAll(set2);
     /*
@@ -230,10 +299,10 @@ public class MinHash<T>{
     	return r;
     }
     
-    static private double jaccardDistance(ArrayList<Long>set1, ArrayList<Long> set2, int s) {
+    static private double jaccardDistance(ArrayList<String>set1, ArrayList<String> set2, int s) {
     	double jaccard = jaccardSimilarity(set1, set2, s);
   //  	return 1.0 - jaccardSimilarity(set1,set2, s);
-    	if(jaccard==1) return 0;
+    	if(jaccard ==1) return 0;
     	else if(jaccard==0) return 1;
     	else
     	return -Math.log(2 * jaccard / (1. + jaccard)) / 21;
@@ -302,10 +371,12 @@ public class MinHash<T>{
 			System.err.println("Two argument required");
 			return;
 		}
-		ArrayList<Long> set1 = new ArrayList<Long>();
-		ArrayList<Long> set2 = new ArrayList<Long>();
-		Long[] hashedKmers1 ;
-		Long[] hashedKmers2 ;
+		ArrayList<String> set1 ;//= new ArrayList<Long>();
+		ArrayList<String> set2 ;//= new ArrayList<Long>();
+	//	Long[] hashedKmers1 ;
+	//	Long[] hashedKmers2 ;
+		ArrayList<String> hashedKmers1 ;
+		ArrayList<String>hashedKmers2;
 		HashMap<String,Integer> seq1 = readKmerFromFile(args[0],21); //path, k 
 		HashMap<String,Integer> seq2 = readKmerFromFile(args[1],21); //path, k
 		hashedKmers1 = hash(seq1);
