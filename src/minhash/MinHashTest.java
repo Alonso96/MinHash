@@ -44,50 +44,52 @@ public class MinHashTest {
 		ArrayList<Long> set2 ;//= new ArrayList<Long>();
 	//	Long[] hashedKmers1 ;
 	//	Long[] hashedKmers2 
-		ArrayList<Long> hashedKmers1 ;  
-		ArrayList<Long>hashedKmers2;  
+		//ArrayList<Long> hashedKmers1 ;  
+	//	ArrayList<Long>hashedKmers2;  
 		System.out.println("Reading 1st genome....");
 
-		Map<String,Integer> seq1 =  new TreeMap<String,Integer> ();
+		Map<Long,Integer> seq1 =  new TreeMap<Long,Integer> ();
 				
 		MinHash.readKmerFromFile(args[0],21,seq1); //path, k 
 		int nKmer =0;
 		
-		for (String entry : seq1.keySet() )
+		for (Long entry : seq1.keySet() )
 			nKmer+= seq1.get(entry);
 		System.out.println("# of kMers 1st genome: "+ nKmer);
 		nKmer=0;
 		
 		System.out.println("Hashing...");
-		hashedKmers1 = MinHash.hash(seq1);
+		//hashedKmers1 = MinHash.hash(seq1);
+		//seq1.clear();
+		//seq1=null;
+		System.out.println("Creating sketch");
+	//	set1 =MinHash. getMinHash(seq1, 1000); //costruisce sketch di minHash grande 1000
 		seq1.clear();
 		seq1=null;
-		System.out.println("Creating sketch");
-		set1 =MinHash. getMinHash(hashedKmers1, 1000); //costruisce sketch di minHash grande 1000
-		hashedKmers1.clear();
-		hashedKmers1=null;
 		
 		
-		System.out.println("Reading 2nd genome...");
-		Map<String,Integer> seq2 =  new TreeMap<String,Integer> ();
-				MinHash.readKmerFromFile(args[1],21,seq2); //path, k
+		Map<Long,Integer> seq2 =  new TreeMap<Long,Integer> ();
 		
-		for (String entry : seq2.keySet() )
+		MinHash.readKmerFromFile(args[1],21,seq2); //path, k 
+		nKmer =0;
+		
+		for (Long entry : seq2.keySet() )
 			nKmer+= seq2.get(entry);
-		System.out.println("# of kMers 2nd genome: "+ nKmer);
+		System.out.println("# of kMers 1st genome: "+ nKmer);
+		nKmer=0;
 		
-		System.out.println("Hashing 2nd genome...");
-		hashedKmers2= MinHash.hash(seq2);
+		System.out.println("Hashing...");
+		//hashedKmers1 = MinHash.hash(seq1);
+		//seq1.clear();
+		//seq1=null;
+		System.out.println("Creating sketch");
+	//	set1 =MinHash. getMinHash(seq2, 1000); //costruisce sketch di minHash grande 1000
 		seq2.clear();
 		seq2=null;
-		System.out.println("Creating sketch...");
-		set2 = MinHash.getMinHash(hashedKmers2, 1000);
-		hashedKmers2.clear();
-		hashedKmers2=null;
 		
 		
-		System.out.println("Indice di Jaccard: "+MinHash.jaccardSimilarity(set1, set2, 1000));
-		System.out.println("Distanza di Jaccard: "+MinHash.jaccardDistance(set1, set2,1000));
+	//	System.out.println("Indice di Jaccard: "+MinHash.jaccardSimilarity(set1, set2, 1000));
+	//	System.out.println("Distanza di Jaccard: "+MinHash.jaccardDistance(set1, set2,1000));
 		
 		long end = System.currentTimeMillis();
 		

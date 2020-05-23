@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 //import org.apache.commons.codec.digest.MurmurHash3;
 
@@ -43,179 +44,56 @@ public class MinHash<T>{
 		
 		return kmers;
 	}
-	public static void  buildKmer(String lastChar,String sequence,int  k, Map<String,Integer> seq1) throws IOException{
+	public static void  buildKmer(char []lastChar,String sequence,int  k, Map<Long,Integer> seq1) throws IOException{
 		//String genoma = new String(Files.readAllBytes(Paths.get(path)));
-		
-		//String kmer =null;
-		//StringBuilder st = new StringBuilder();
-		ArrayList<String> kmers = new ArrayList<String>();
-		//StringBuilder s1 = new StringBuilder();
-
-		String s1 = lastChar+sequence;
-	//	char [] km = new char [k];
-		StringBuilder sb = new StringBuilder();
-	//	s1.append(lastChar);
-	//	s1.append(sequence);
-		//int n_kmers = sequence.length() - k + 1;
-		int n_kmers =s1.length() - k +1 ;
-	//	System.out.println("n k-meri" + n_kmers);
-	//	System.out.println("l sequenza: "+ sequence.length());
-		for (int i=0;i<n_kmers;i++) {
-				
+		int cont =0;
+		int i=0;
+		char [] kmer = new char[k];
+		char [] s1 = new char[sequence.length()+lastChar.length];
+		for(i=0; i<sequence.length();i++) {//copio tutti i caratteri della sequenza in un char array
+			if(sequence.charAt(i)=='N' || sequence.charAt(i)=='n') // se è una sequenza non codificante salta il carattere
+				i--;
+			else
+				s1[i]=sequence.charAt(i);
+		}
+		cont =i;
+		for(i =0; i<lastChar.length;i++) {
+			
+			s1[i+cont] = lastChar[i];
+			
+		}
+		int n_kmers =s1.length - k +1 ;
+        for (i=0;i<n_kmers;i++) {
 			for(int j=0;j<k;j++) {
-				sb.append(s1.charAt(j+i));
+				kmer[j]= s1[j+i];
 			}
-			//kmer= s1.substring(i,i+k);
 		
-			if(String.valueOf(sb.toString()).contains("N")) continue;
-			else {
-				incrementValue(seq1,sb.toString());
-				sb.setLength(0);
-				//seq1.add(String.valueOf(km));
-			//	System.out.println(kmer.length());
+			incrementValue(seq1,hash(kmer));
+			
 			}
 		}
-		//AL POSTO DI METTERE IN UN ARRAYLIST PERCHE' NON GLI PASSO L'HASHMAP E METTO TUTTO DENTRO ??
-	//	return kmers;
-	}
-	/*
-	public static String getMd5(String input) 
-    { 
-        try { 
-  
-            // Static getInstance method is called with hashing MD5 
-            MessageDigest md = MessageDigest.getInstance("MD5"); 
-  
-            // digest() method is called to calculate message digest 
-            //  of an input digest() return array of byte 
-            byte[] messageDigest = md.digest(input.getBytes()); 
-  
-            // Convert byte array into signum representation 
-            BigInteger no = new BigInteger(1, messageDigest); 
-  
-            // Convert message digest into hex value 
-            String hashtext = no.toString(16); 
-            while (hashtext.length() < 32) { 
-                hashtext = "0" + hashtext; 
-            } 
-            return hashtext; 
-        }  
-  
-        // For specifying wrong message digest algorithms 
-        catch (NoSuchAlgorithmException e) { 
-            throw new RuntimeException(e); 
-        } 
-    } 
- public static long hash64(String string) {
-	  long h = 1125899906842597L; // prime
-	  int len = string.length();
 
-	  for (int i = 0; i < len; i++) {
-	    h = 31*h + string.charAt(i);
-	  }
-	  return h;
-	}
-	 */
+
 	
-	public static ArrayList<Long> hash (Map<String, Integer> seq1) throws UnsupportedEncodingException {
-		 //calcola complemento inverso	
-		//Long min = Long.MAX_VALUE;
-		//System.out.println(kmer.size());
-		 // prime
-		ArrayList<Long> kmerHashed = new ArrayList<Long>();
+	public static Long hash (char [] kmer) throws UnsupportedEncodingException {
 		
-	//	ArrayList<Long> sketch = new  ArrayList<Long>();
-		for(String s : seq1.keySet()) {
-			if(seq1.get(s)>4) {		//	System.out.println(s);
 				String canonicalKmer;
-				String rcKmer = makeComplement(s);
+				String rcKmer =String.valueOf(makeComplement(kmer));
 	//	lex1 = s.compareTo(rcKmer);
 	//	lex2= rcKmer.compareTo(s);
 		    //determina il minore tra il kmero originale e il suo reverse complement
-				if (s.compareTo(rcKmer) <=0)
-					canonicalKmer = s;
+				if (String.valueOf(kmer).compareTo(rcKmer) >0)
+					canonicalKmer = rcKmer ;
 				else 
-					canonicalKmer = rcKmer;
+					canonicalKmer = String.valueOf(kmer);
 
 
-				//seq + 16, length - 16, seed, data + 4
-		/*		  Long h = 1125899906842597L; //prime
-				  int len = canonicalKmer.length();
-				  for (int i = 0; i < len; i++) {
-				    h = 31*h + canonicalKmer.charAt(i);
-				  }
-				  */
-				//hash64(canonicalKmer);//
 		   		long[]  hash = MurmurHash3.hash128(canonicalKmer.getBytes(StandardCharsets.UTF_8),0,canonicalKmer.getBytes(StandardCharsets.UTF_8).length,42) ;
-		//    System.out.println(hash);
-		   	
-		    	
-		    
-		 //  		kmerHashed.add(hash);
-		  
-		   	//	else
-		   		kmerHashed.add(hash[0]);
-		  
-		   	}
-		   	else continue;
-		  
-		   
-		} //fine for 
-		//	System.out.println(minHashes.size());
-		//System.out.println(occurenceOfHash);
-			return kmerHashed;
+		
+			return hash[0];
 
 	}
 	
-	/*public static ArrayList<String> hash (HashMap<String, Integer> seq) throws UnsupportedEncodingException {
-		 //calcola complemento inverso	
-		//Long min = Long.MAX_VALUE;
-		//System.out.println(kmer.size());
-		
-		ArrayList<String> kmerHashed = new ArrayList<String>();
-		int i=0;
-		int lex1 =0;
-		int lex2=0;
-	//	ArrayList<Long> sketch = new  ArrayList<Long>();
-		for(String s : seq.keySet()) {
-			if(seq.get(s)>4) {
-		//	System.out.println(s);
-				String canonicalKmer;
-				String rcKmer = makeComplement(s);
-	//	lex1 = s.compareTo(rcKmer);
-	//	lex2= rcKmer.compareTo(s);
-		    //determina il minore tra il kmero originale e il suo reverse complement
-				if (s.compareTo(rcKmer) <=0)
-					canonicalKmer = s;
-				else 
-					canonicalKmer = rcKmer;
-
-
-		     
-		   	
-		   		String hash =  getMd5(canonicalKmer);//MurmurHash3.hash64(canonicalKmer.getBytes(StandardCharsets.UTF_8)) ;
-		//    System.out.println(hash);
-		   // if (hash < 0) 
-		    	
-		    
-		   		kmerHashed.add(hash);
-		  // i++;
-		   	}
-		   	else continue;
-		   /* if(hash<=min) {
-		    	
-		    	min = hash;
-		    	minHashes.add(min);
-          // System.out.println("aggiunto min "+ min);
-		    }
-		   
-		} //fine for 
-		//	System.out.println(minHashes.size());
-		//System.out.println(occurenceOfHash);
-			return kmerHashed;
-
-	}
-	*/
 	public static<K> void incrementValue(Map<K,Integer> map, K key)
 	{
 		
@@ -224,25 +102,25 @@ public class MinHash<T>{
 				map.merge(key, 1, Integer::sum);
 			}
 	
-    public static String makeComplement(String dna) {
-         StringBuilder builder = new StringBuilder();
-
-         for(int i=0;i<dna.length();i++){
-              char c = dna.charAt(i);
-              if(dna.charAt(i) == 'T'){
-                  builder.append('A');
+    public static char [] makeComplement(char [] dna) {
+         char [] revKmer = new char [dna.length];
+// partire dalla fine verso inizio
+         for(int i=0;i<dna.length;i++){
+              
+              if(dna[i] == 'T'){
+                  revKmer[revKmer.length-i-1]='A';
               }
-              if(dna.charAt(i) == 'A'){
-                  builder.append('T');
+              if(dna[i] == 'A'){
+                  revKmer[revKmer.length-i-1]='T';
               }
-              if(dna.charAt(i) == 'C'){
-                  builder.append('G');
+              if(dna[i] == 'C'){
+                  revKmer[revKmer.length-i-1]='G';
               }
-              if(dna.charAt(i) == 'G'){
-                  builder.append('C');
-              }   
+              if(dna[i] == 'G'){
+                  revKmer[revKmer.length-i-1]='C';
+              }
          }
-         return builder.toString();
+         return revKmer;
     }
    public static ArrayList<Long> getMinHash(ArrayList<Long>hashedKmers, int s) //s corrisponde alla grandezza del mio sketch
     {  
@@ -376,61 +254,49 @@ public class MinHash<T>{
     	
         
     }
-    public static void readKmerFromFile(String path,int kSize, Map<String,Integer> seq1) throws IOException{
-    //	char [] alphabet = "ACGT".toCharArray();
-    	//System.out.println(alphabet);
-    	
-  
-    	String lastChars = "" ;
-   // 	HashMap<String,Integer> allKmers = new HashMap<String,Integer>();
-    //	ArrayList<String>  kM = null ;
+    public static void readKmerFromFile(String path,int kSize, Map<Long,Integer> seq1) throws IOException{
     
-    	
-    	//File file = new File(path); 
-    	
-    	//int c = 0;             
-
-	//	byte[] buf = new byte[1024];
-    //	FileInputStream is = new FileInputStream(path);
-    
-
-    		//int i =0;
-    		//boolean  first = true;
-    		//
-    //	String chunk = new String(buf);
+    	char [] lastChars = new char [kSize-1] ;
+ 
     		String line = "";
-    		
-    	//	Scanner scan = new Scanner(chunk);
-    		//Reader inputString = new StringReader(chunk);
+    
     		try {
+    			int cont =0;
     		BufferedReader br= new BufferedReader(new FileReader(path));
-    		while ((line =  br.readLine()) != null) { //Successivamente inserire controllo per saltare le righe che non inziano per alfabeto ACGT
-        		  if(line.contains(">")) { // se è la riga descrittiva del genoma salta
+    		
+    		while ((line = br.readLine())!= null) { //Successivamente inserire controllo per saltare le righe che non inziano per alfabeto ACGT
+        		
+    			if(line.trim().isEmpty()) { // se è la riga descrittiva del genoma salta
         			//  br.readLine();
-        			  lastChars = ""; // se è una nuova sequenza butto gli ultimi k-1 caratteri letti 
+    				 System.out.println("fine file");
+    				 continue;
+        			  
+        			  }
+        		  else if(line.charAt(0)=='>') {
+        			  lastChars =  new char[kSize-1];// se è una nuova sequenza butto gli ultimi k-1 caratteri letti 
         			  continue;
-        			  } 
+        		  }
         		  else {
         			 buildKmer(lastChars,line.toUpperCase(), kSize,seq1);
-        			  /*for(String entry : kM) {
-        			   
-                			
-            				incrementValue(allKmers,entry);
-              		  }
-        			  */
-        		//	  genome.append(Character.toUpperCase(character));
-        			 if(line.length()<(kSize -1)) //se la riga letta ha meno di k-1 caratteri, si verifica solo alla fine del genoma e questi caratteri non verranno mai considerati in quanto
+        			  
+        			 if(line.length()<(kSize -1)) { //se la riga letta ha meno di k-1 caratteri, si verifica solo alla fine del genoma e questi caratteri non verranno mai considerati in quanto
         				 //nella prox iterazione uscirà dal ciclo perchè è arrivato a fine file
-        				 lastChars = line;
+        				for(int i=0;i<line.length();i++) {
+        					lastChars[i] = line.charAt(i);
+        				}
+        			 }
         			 else {
         				
-        			 	lastChars =  line.substring(line.length()-(kSize-1));
+        			 	for(int i=0;i<lastChars.length;i++) {
+        			 		lastChars[i]= line.charAt(line.length()-(kSize-1)+i);
+        			 	}
         			 }
         		//	 System.gc();
+        			// System.out.println(String.valueOf(lastChars));
         		  }
         		
         		//  kM=null;
-        		  line="";
+        		  //line="";
         		  
         		  
     		
