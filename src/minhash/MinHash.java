@@ -91,7 +91,7 @@ public class MinHash<T>{
 					canonicalKmer = String.valueOf(kmer);
 
 				
-		   		long [] hash = MurmurHash3.hash128(canonicalKmer.getBytes(StandardCharsets.UTF_8),0,canonicalKmer.getBytes(StandardCharsets.UTF_8).length,42) ;
+		   		long [] hash = MurmurHash3.hash128(canonicalKmer.getBytes(StandardCharsets.UTF_8),0,canonicalKmer.getBytes(StandardCharsets.UTF_8).length,0) ;
 		   		
 		   		if(hash[0]<0)
 		   			hash[0]+=Math.pow(2, 64);
