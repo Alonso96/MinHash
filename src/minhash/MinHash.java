@@ -14,8 +14,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-//import org.apache.commons.codec.digest.MurmurHash3;
+import org.apache.commons.codec.digest.MurmurHash3;
 
 
 
@@ -222,7 +221,7 @@ public class MinHash<T>{
     		//	System.out.println(cont);
     			if(line.trim().isEmpty()) { // se è la riga descrittiva del genoma salta
         			//  br.readLine();
-    				 System.out.println("fine file");
+    			
     				 continue;
         			  
         			  }
